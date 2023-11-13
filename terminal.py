@@ -216,13 +216,4 @@ class Terminal_commands:
             self.t_print('')
 
 
-def test(param):
-    a = Termianl_Information({'1':{'2':'NONE', '1':'NONE'}, '22':'VIEW'}, param.screen)
-    a.exe()
-
-#c = Controller()
-#c.test()
-t = Terminal_commands({'a':'b', 't': test})
-t.run()
-
 
