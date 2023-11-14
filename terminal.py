@@ -119,7 +119,7 @@ def terminal_command(self):
 
 class Terminal_commands:
 
-    def __init__(self, commands, screen = None):
+    def __init__(self, commands:dict, screen = None):
         if screen == None:
             self.screen = curses.initscr()
         else:
