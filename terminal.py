@@ -1,9 +1,11 @@
 import curses
 import asyncio
+from abc import ABC
+import abc
 import time
 
 #controller to controll and builds the terminal
-class Controller:
+class Controller():
 
     def __init__(self):
         #creates the asyncio event loop
@@ -13,16 +15,27 @@ class Controller:
     def build(self):
         pass
 
-#this is a terminal used to display simple information
-class Termianl_Information:
+    def run(self):
+        pass
 
-    #inits the
-    def __init__(self, path, screen = None):
-        #inits the screen, can be given by the parent class and reuses the screen
+class base_terminal:
+
+    def screen_setup(self, screen):
         if screen == None:
             self.screen = curses.initscr()
         else:
             self.screen = screen
+
+    def display(self):
+        raise NotImplementedError("Please Implement the method display")
+
+#this is a terminal used to display simple information
+class Termianl_Information(base_terminal):
+
+    #inits the
+    def __init__(self, path, screen = None):
+        #inits the screen, can be given by the parent class and reuses the screen
+        self.screen_setup(screen)
         #setting for the terminal
         curses.noecho()
         curses.cbreak()
@@ -112,21 +125,17 @@ class Termianl_Information:
                 self.move(False)
 
 
-def terminal_command(self):
-
+def terminal_command(self, *args):
     def do_func(func):
         self.commands[f"{func.__name__}"] = func
         return func
 
     return do_func
 
-class Terminal_commands:
+class Terminal_commands(base_terminal):
 
-    def __init__(self, commands:dict, screen = None, dispaly_info:str = ''):
-        if screen == None:
-            self.screen = curses.initscr()
-        else:
-            self.screen = screen
+    def __init__(self, commands:dict, screen = None, display_info:str = ''):
+        self.screen_setup(screen)
         self.history = []
         self.commands : dict = {}
         self.implement_commands(commands)
@@ -136,14 +145,16 @@ class Terminal_commands:
         curses.cbreak()
         self.screen.keypad(True)
         self.tracknum : int = 0
-        self.dispaly_info = dispaly_info
+        self.display_info = display_info
 
+    def __call__(self, *args, **kwargs):
+        print(self)
 
     def implement_commands(self, commands : dict):
         for x in commands:
             self.commands[f"i.{x}"] = commands[x]
 
-    def dispaly(self, ignore_input:bool=False):
+    def display(self, ignore_input:bool=False):
         self.screen.clear()
         tracknum : int = 0
         for x in range(len(self.history)):
@@ -158,16 +169,14 @@ class Terminal_commands:
         self.screen.refresh()
 
     def run(self):
-        a = self.yes_no_question()
-        print(a)
-        if not self.dispaly_info in self.history:
-            self.history.append(self.dispaly_info)
+        if self.history == []:
+            self.history.append(self.display_info)
         # Initialisieren von curses
         stdscr = self.screen
-        self.dispaly()
+        self.display()
         # Hauptterminal-Schleife
         while True:
-            self.dispaly()
+            self.display()
             user_input = stdscr.getstr(self.tracknum, 3, 60)
             self.screen.refresh()
             user_input = user_input.decode("utf-8").split()
@@ -191,7 +200,7 @@ class Terminal_commands:
     def yes_no_question(self, input:str=''):
         self.t_print(input)
         self.t_print('y[es] or n[o]')
-        self.dispaly(True)
+        self.display(True)
         while True:
             key = self.screen.getch()
             if key == ord('y') or key == ord('Y'):
@@ -216,21 +225,21 @@ class Terminal_commands:
 
     def t_print(self, info:str):
         self.history.append(info)
-        self.dispaly()
+        self.display()
 
     def setup_commands(self):
 
         @terminal_command(self)
-        def clear(self):
+        def clear(self:Terminal_commands):
             self.history = []
-            self.dispaly()
+            self.display()
 
         @terminal_command(self)
-        def exit(self):
+        def exit(self:Terminal_commands):
             return 0
 
         @terminal_command(self)
-        def help(self):
+        def help(self:Terminal_commands):
             self.t_print('')
             self.t_print('Alle möglichen Befehle:')
             for x in self.commands:
