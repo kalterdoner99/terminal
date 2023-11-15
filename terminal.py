@@ -2,36 +2,41 @@ import curses
 import asyncio
 import time
 
+#controller to controll and builds the terminal
 class Controller:
 
     def __init__(self):
+        #creates the asyncio event loop
         self.loop = asyncio.new_event_loop()
 
-    def test(self):
-        t = Termianl_Information({'1':{'2':'NONE', '1':'NONE'}, '22':'VIEW'})
-        t.display()
-        t.exe()
-        print(t.get_current_path_info())
+    #actual build etc will be added
+    def build(self):
+        pass
 
+#this is a terminal used to display simple information
 class Termianl_Information:
 
+    #inits the
     def __init__(self, path, screen = None):
+        #inits the screen, can be given by the parent class and reuses the screen
         if screen == None:
             self.screen = curses.initscr()
         else:
             self.screen = screen
+        #setting for the terminal
         curses.noecho()
         curses.cbreak()
+        #this is the whole path for the display of information
         self.path : dict = path
+        #setups the current path, this is how the programm knows where in the path we are
         self.current_path : list = [str(x) for x in self.path.keys()]
         self.current_path : list = [self.current_path[0]]
+        #this is just the path info for the current path(= where we currently are) is saved
         self.current_path_info : dict = self.get_current_path_info()
+        #this is the current
         self.current : str = str(self.current_path[0])
         self.current_index : int = 0
         self.current_max : int = len(self.get_current_path_info().keys()) - 1
-
-    def setup(self):
-        return curses.initscr()
 
     def setup_current(self):
         self.current = str([x for x in self.current_path_info][self.current_index])
@@ -48,18 +53,15 @@ class Termianl_Information:
             path = self.path
         return path
 
-    def move_UP(self):
-        if not self.current_index == 0:
+    def move(self, move_UP:bool):
+        if move_UP and self.current_index != 0:
             self.current_index -= 1
-            self.setup_current()
-        self.display()
-
-    def move_DOWN(self):
-        if not self.current_index == self.current_max:
+        elif not move_UP and self.current_index != self.current_max:
             self.current_index += 1
-            self.setup_current()
+        self.setup_current()
         self.display()
 
+    #goes to the next in the path
     def next(self):
         self.current_path.append(self.current)
         self.current_index = 0
@@ -67,6 +69,7 @@ class Termianl_Information:
         self.current_path_info = self.get_current_path_info()
         self.current_max = len(self.current_path_info.keys()) - 1
 
+    #goes back in the current path
     def back(self):
         del self.current_path[len(self.current_path)-1]
         self.current_path_info = self.get_current_path_info()
@@ -95,7 +98,7 @@ class Termianl_Information:
 
         self.screen.refresh()
 
-    def exe(self):
+    def run(self):
         while True:
             self.display()
             c = self.screen.getch()
@@ -104,9 +107,9 @@ class Termianl_Information:
             if c == 10:
                 self.use()
             if c == ord('w') or c == ord('W'):
-                self.move_UP()
+                self.move(True)
             if c == ord('s') or c == ord('S'):
-                self.move_DOWN()
+                self.move(False)
 
 
 def terminal_command(self):
@@ -119,7 +122,7 @@ def terminal_command(self):
 
 class Terminal_commands:
 
-    def __init__(self, commands:dict, screen = None):
+    def __init__(self, commands:dict, screen = None, dispaly_info:str = ''):
         if screen == None:
             self.screen = curses.initscr()
         else:
@@ -133,24 +136,32 @@ class Terminal_commands:
         curses.cbreak()
         self.screen.keypad(True)
         self.tracknum : int = 0
+        self.dispaly_info = dispaly_info
 
 
     def implement_commands(self, commands : dict):
         for x in commands:
             self.commands[f"i.{x}"] = commands[x]
 
-    def dispaly(self):
+    def dispaly(self, ignore_input:bool=False):
         self.screen.clear()
         tracknum : int = 0
         for x in range(len(self.history)):
             self.screen.addstr(x, 0, self.history[x])
             tracknum = x
         self.screen.addstr(tracknum, 0, "")
-        self.screen.addstr(tracknum + 1, 0, ">> ")
+        if ignore_input == False:
+            self.screen.addstr(tracknum + 1, 0, ">> ")
+        else:
+            self.screen.addstr(tracknum + 1, 0, "")
         self.tracknum = tracknum + 1
         self.screen.refresh()
 
     def run(self):
+        a = self.yes_no_question()
+        print(a)
+        if not self.dispaly_info in self.history:
+            self.history.append(self.dispaly_info)
         # Initialisieren von curses
         stdscr = self.screen
         self.dispaly()
@@ -176,6 +187,17 @@ class Terminal_commands:
                     self.t_print(f'Unbekannter Befehl "{command}"')
 
             # Warten auf Benutzereingabe
+
+    def yes_no_question(self, input:str=''):
+        self.t_print(input)
+        self.t_print('y[es] or n[o]')
+        self.dispaly(True)
+        while True:
+            key = self.screen.getch()
+            if key == ord('y') or key == ord('Y'):
+                return True
+            if key == ord('n') or key == ord('N'):
+                return False
 
     def inputs(self, eingabe:dict):
         self.screen.clear()
