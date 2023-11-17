@@ -7,20 +7,24 @@ import time
 #controller to controll and builds the terminal
 class Controller():
 
-    def __init__(self):
+    def __init__(self, class_Builder):
         #creates the asyncio event loop
         self.loop = asyncio.new_event_loop()
+        self.build = class_Builder.Return()
+        self.screen = curses.initscr()
 
     #actual build etc will be added
-    def build(self):
-        pass
 
     def run(self):
-        pass
+        self.build['START'].run()
+
+
 
 class base_terminal:
 
+
     def screen_setup(self, screen):
+        self.running = False
         if screen == None:
             self.screen = curses.initscr()
         else:
@@ -28,6 +32,27 @@ class base_terminal:
 
     def display(self):
         raise NotImplementedError("Please Implement the method display")
+
+    def run(self):
+        raise NotImplementedError("Please Implement run")
+
+    def start(self):
+        if not self.running:
+            self.running = True
+
+    def stop(self):
+        if self.running:
+            self.running = False
+
+    def conv_func(self, func):
+        result = str(func)
+        if result == None:
+            return False
+        else:
+            return result
+
+    def conv_str(self, STR):
+        return STR
 
 #this is a terminal used to display simple information
 class Termianl_Information(base_terminal):
@@ -41,6 +66,7 @@ class Termianl_Information(base_terminal):
         curses.cbreak()
         #this is the whole path for the display of information
         self.path : dict = path
+        self.path['EXIT'] = 'EXIT'
         #setups the current path, this is how the programm knows where in the path we are
         self.current_path : list = [str(x) for x in self.path.keys()]
         self.current_path : list = [self.current_path[0]]
@@ -94,7 +120,9 @@ class Termianl_Information(base_terminal):
         value = self.current_path_info[self.current]
         if value == 'BACK':
             self.back()
-        if isinstance(value, dict):
+        elif value == 'EXIT':
+            return 0
+        elif isinstance(value, dict):
             self.next()
         self.display()
 
@@ -112,17 +140,21 @@ class Termianl_Information(base_terminal):
         self.screen.refresh()
 
     def run(self):
+        self.start()
         while True:
             self.display()
             c = self.screen.getch()
             if c == 9:
                 break
             if c == 10:
-                self.use()
+                output = self.use()
+                if output == 0:
+                    break
             if c == ord('w') or c == ord('W'):
                 self.move(True)
             if c == ord('s') or c == ord('S'):
                 self.move(False)
+        self.stop()
 
 
 def terminal_command(self, *args):
@@ -134,7 +166,7 @@ def terminal_command(self, *args):
 
 class Terminal_commands(base_terminal):
 
-    def __init__(self, commands:dict, screen = None, display_info:str = ''):
+    def __init__(self, commands:dict ,  screen = None, display_info:str = ''):
         self.screen_setup(screen)
         self.history = []
         self.commands : dict = {}
@@ -146,6 +178,10 @@ class Terminal_commands(base_terminal):
         self.screen.keypad(True)
         self.tracknum : int = 0
         self.display_info = display_info
+
+    def add_commands(self, **kwargs):
+        for x in kwargs:
+            self.commands[f"i.{x}"] = kwargs[x]
 
     def __call__(self, *args, **kwargs):
         print(self)
@@ -188,12 +224,12 @@ class Terminal_commands(base_terminal):
                     if isinstance(output, str):
                         self.t_print(output)
                     else:
-                        a = output(self)
+                        output = output(self, user_input[1:])
                         curses.echo()
-                        if a == 0:
+                        if output == 0:
                             break
                 else:
-                    self.t_print(f'Unbekannter Befehl "{command}"')
+                    self.t_print(f'Unknown Command "{command}"')
 
             # Warten auf Benutzereingabe
 
@@ -230,21 +266,50 @@ class Terminal_commands(base_terminal):
     def setup_commands(self):
 
         @terminal_command(self)
-        def clear(self:Terminal_commands):
+        def clear(self:Terminal_commands, args):
             self.history = []
             self.display()
 
         @terminal_command(self)
-        def exit(self:Terminal_commands):
+        def exit(self:Terminal_commands, args):
             return 0
 
         @terminal_command(self)
-        def help(self:Terminal_commands):
+        def help(self:Terminal_commands, args):
             self.t_print('')
             self.t_print('Alle möglichen Befehle:')
             for x in self.commands:
                 self.t_print(f'     {x}')
             self.t_print('')
 
+class No_func(Exception):
+
+    pass
+
+class use_func():
+
+    def __init__(self):
+        self.terminal = None
+        self.args :list = []
+
+
+    def run(self, terminal, args):
+        self.terminal = terminal
+        self.args = args
+        self.func()
+
+    def func(self):
+        raise NotImplemented
+
+class Builder:
+
+    def __init__(self, path:dict={}):
+        self.build = path
+
+    def Return(self):
+        return self.build
+
+    def set_start(self, info):
+        self.build['START'] = info
 
 
