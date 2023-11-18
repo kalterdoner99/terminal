@@ -4,19 +4,18 @@ from abc import ABC
 import abc
 import time
 
-#controller to controll and builds the terminal
+#controller to controll and build the terminal
 class Controller():
 
-    def __init__(self, class_Builder):
+    def __init__(self):
         #creates the asyncio event loop
-        self.loop = asyncio.new_event_loop()
-        self.build = class_Builder.Return()
-        self.screen = curses.initscr()
-
-    #actual build etc will be added
+        self.build = {}
 
     def run(self):
         self.build['START'].run()
+
+    def set_start(self, info):
+        self.build['START'] = info
 
 
 
@@ -67,6 +66,7 @@ class Termianl_Information(base_terminal):
         #this is the whole path for the display of information
         self.path : dict = path
         self.path['EXIT'] = 'EXIT'
+        self.path_conv()
         #setups the current path, this is how the programm knows where in the path we are
         self.current_path : list = [str(x) for x in self.path.keys()]
         self.current_path : list = [self.current_path[0]]
@@ -80,9 +80,12 @@ class Termianl_Information(base_terminal):
     def setup_current(self):
         self.current = str([x for x in self.current_path_info][self.current_index])
 
-    def get_current_path_info(self):
+    def get_current_path_info(self, search_path = None):
         path = self.path
-        current = [x for x in self.current_path]
+        if search_path == None:
+            current = [x for x in self.current_path]
+        else:
+            current = [x for x in search_path]
         del current[0]
         if not current == []:
             for x in current:
@@ -125,6 +128,62 @@ class Termianl_Information(base_terminal):
         elif isinstance(value, dict):
             self.next()
         self.display()
+
+    def path_conv(self):
+
+        def costum_path_info(path_path):
+            path = self.path
+            print(path_path)
+            for x in path_path:
+                path = path[x]
+            return path
+
+        path_list = []
+        for x in self.path.keys():
+            path_list.append([x])
+        del path_list[path_list.index(['EXIT'])]
+
+
+
+        while True:
+
+
+            if path_list == []:
+                break
+
+            current = path_list[0]
+
+            current_info = costum_path_info(current)
+
+            if isinstance(current_info, dict):
+                for x in current_info.keys():
+                    current_copy = [b for b in current]
+                    current_copy.append(x)
+                    path_list.append(current_copy)
+
+            elif isinstance(current_info, list):
+                new_info = dict()
+                for x in current_info:
+                    new_info[str(x)] = None
+
+                self.add_path_info(current, new_info)
+
+            elif callable(current_info):
+                result = current_info()
+                self.add_path_info(current, result)
+                path_list.append(current)
+
+
+            del path_list[0]
+
+    def add_path_info(self, path, info):
+        new_path = self.path
+        last_char = path[len(path) - 1]
+        del path[len(path) - 1]
+        for x in path:
+            new_path = new_path[x]
+        new_path[last_char] = info
+
 
     def display(self):
         self.screen.clear()
@@ -309,7 +368,6 @@ class Builder:
     def Return(self):
         return self.build
 
-    def set_start(self, info):
-        self.build['START'] = info
+
 
 

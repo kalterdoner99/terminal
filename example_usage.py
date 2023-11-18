@@ -31,7 +31,7 @@ def get_info(ter, args):
     new_info = info()
     ter_display = terminal.Termianl_Information(new_info, ter.screen)
     ter_display.run()
-    
+
 
 
 
@@ -46,9 +46,8 @@ def example1():
     terminal1 = terminal.Terminal_commands({}, display_info="Type 'help' to see all commands or type 'exit' to exit")
     terminal1.add_commands(wow=wow, help=help, build=e1.build, run=e1.run, display=e1.display)
     terminal1.add_commands(terminal=get_info)
-    builder = terminal.Builder()
-    builder.set_start(terminal1)
-    controller = terminal.Controller(builder)
+    controller = terminal.Controller()
+    controller.set_start(terminal1)
     controller.run()
 
 example1()
